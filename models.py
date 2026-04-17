@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -21,7 +21,7 @@ class Edge:
     source_b: str
     price_b: float
     spread: float
-    detected_at: datetime = field(default_factory=datetime.utcnow)
+    detected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -33,6 +33,6 @@ class Position:
     size: float
     current_price: float = 0.0
     pnl: float = 0.0
-    opened_at: datetime = field(default_factory=datetime.utcnow)
+    opened_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "open"
-    id: int = 0
+    id: int | None = None
