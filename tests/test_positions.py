@@ -48,3 +48,20 @@ def test_get_closed_positions_returns_closed_only(conn):
     assert closed[0].market_id == "m1"
     assert len(open_) == 1
     assert open_[0].market_id == "m2"
+
+
+def test_update_position_calculates_pnl(conn):
+    pid = open_position(conn, _make_pos(entry_price=0.50, size=100.0))
+    from positions import update_position
+    update_position(conn, pid, 0.60)
+    row = conn.execute("SELECT current_price, pnl FROM positions WHERE id = ?", (pid,)).fetchone()
+    assert row["current_price"] == 0.60
+    assert abs(row["pnl"] - 10.0) < 0.001  # (0.60 - 0.50) * 100.0 = 10.0
+
+
+def test_close_position_sets_status_closed(conn):
+    pid = open_position(conn, _make_pos())
+    from positions import close_position
+    close_position(conn, pid)
+    row = conn.execute("SELECT status FROM positions WHERE id = ?", (pid,)).fetchone()
+    assert row["status"] == "closed"
