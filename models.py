@@ -10,6 +10,7 @@ class Market:
     question: str
     yes_price: float  # 0.0–1.0
     url: str
+    volume: float = 0.0
 
 
 @dataclass
@@ -35,4 +36,5 @@ class Position:
     pnl: float = 0.0
     opened_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     status: str = "open"
+    outcome: str = "open"   # "open" | "win" | "loss"
     id: int | None = None

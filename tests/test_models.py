@@ -22,3 +22,13 @@ def test_position_defaults():
     assert p.status == "open"
     assert p.current_price == 0.0
     assert p.pnl == 0.0
+
+
+def test_market_has_volume_default():
+    m = Market(source="polymarket", id="abc", question="Q?", yes_price=0.5, url="http://x")
+    assert m.volume == 0.0
+
+
+def test_position_has_outcome_default():
+    p = Position(market_id="abc", question="Q?", side="YES", entry_price=0.5, size=10.0)
+    assert p.outcome == "open"
