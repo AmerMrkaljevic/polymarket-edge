@@ -29,6 +29,7 @@ def fetch_markets() -> list[Market]:
                 question=item.get("question", ""),
                 yes_price=yes_price,
                 url=f"https://polymarket.com/event/{item.get('market_slug', item['condition_id'])}",
+                volume=float(item.get("volume", 0) or 0),
             ))
 
         next_cursor = data.get("next_cursor", "")
@@ -38,6 +39,25 @@ def fetch_markets() -> list[Market]:
             break
 
     return markets
+
+
+def fetch_prices(market_ids: list[str]) -> dict[str, float]:
+    """Fetch current YES price for each market_id. Skips failures silently."""
+    prices = {}
+    for mid in market_ids:
+        try:
+            resp = requests.get(
+                f"{config.POLYMARKET_HOST}/markets/{mid}",
+                timeout=config.REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            item = resp.json()
+            price = _extract_yes_price(item.get("tokens", []))
+            if price is not None:
+                prices[mid] = price
+        except Exception:
+            pass
+    return prices
 
 
 def _extract_yes_price(tokens: list[dict]) -> float | None:
