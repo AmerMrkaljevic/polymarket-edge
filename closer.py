@@ -14,8 +14,10 @@ def check_and_close(broker, current_prices: dict[str, float]) -> None:
         pnl_pct = (current - pos.entry_price) / pos.entry_price if pos.entry_price > 0 else 0.0
         age_days = (datetime.now(timezone.utc) - pos.opened_at).days
 
+        age_hours = (datetime.now(timezone.utc) - pos.opened_at).total_seconds() / 3600
         profit_hit = pnl_pct >= config.PROFIT_TARGET
-        edge_gone = has_price and abs(pnl_pct) < config.CLOSE_EDGE_THRESHOLD
+        # Only trigger edge_gone after holding for at least 1 hour (prevents immediate close)
+        edge_gone = has_price and age_hours >= 1.0 and abs(pnl_pct) < config.CLOSE_EDGE_THRESHOLD
         time_stop = age_days >= config.POSITION_TIME_STOP_DAYS
 
         if profit_hit or edge_gone or time_stop:
