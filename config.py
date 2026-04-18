@@ -18,3 +18,6 @@ NEWS_FEEDS = [
     "http://feeds.bbci.co.uk/news/rss.xml",
 ]
 REQUEST_TIMEOUT = 10
+
+REDDIT_SUBREDDITS = ["politics", "worldnews", "CryptoCurrency", "sports"]
+TELEGRAM_CHANNELS = ["polymarketwhales", "worldnewstoday"]
