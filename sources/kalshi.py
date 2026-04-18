@@ -22,11 +22,12 @@ def fetch_markets() -> list[Market]:
         data = resp.json()
 
         for item in data.get("markets", []):
-            yes_bid = item.get("yes_bid")
-            yes_ask = item.get("yes_ask")
-            if yes_bid is None or yes_ask is None:
+            yes_bid = float(item.get("yes_bid_dollars") or 0)
+            yes_ask = float(item.get("yes_ask_dollars") or 0)
+            if yes_bid <= 0 and yes_ask <= 0:
                 continue
-            yes_price = (float(yes_bid) + float(yes_ask)) / 2 / 100
+            # prices are already in 0-1 range (dollars)
+            yes_price = (yes_bid + yes_ask) / 2 if yes_bid > 0 else yes_ask
             markets.append(Market(
                 source="kalshi",
                 id=item["ticker"],

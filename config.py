@@ -10,7 +10,7 @@ NEWS_KEYWORD_MIN = 3
 DB_PATH = "polymarket_edge.db"
 
 POLYMARKET_HOST = "https://clob.polymarket.com"
-KALSHI_BASE = "https://trading-api.kalshi.com/trade-api/v2"
+KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2"
 MANIFOLD_BASE = "https://api.manifold.markets/v0"
 METACULUS_BASE = "https://www.metaculus.com/api2"
 
