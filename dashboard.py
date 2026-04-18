@@ -6,12 +6,18 @@ from rich.table import Table
 from rich import box
 import config
 from models import Edge, Position
+from analytics import AnalyticsSummary
 
 console = Console()
 
 
-def render(edges: list[Edge], positions: list[Position], next_poll_in: int) -> None:
-    """Clear terminal and render edges + positions tables."""
+def render(
+    edges: list[Edge],
+    positions: list[Position],
+    next_poll_in: int,
+    summary: AnalyticsSummary | None = None,
+) -> None:
+    """Clear terminal and render edges, positions, and analytics tables."""
     mode_label = "⚠ LIVE" if not config.PAPER_TRADING else "PAPER"
     now = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
@@ -61,6 +67,28 @@ def render(edges: list[Edge], positions: list[Position], next_poll_in: int) -> N
             pnl_str,
         )
 
+    analytics_table = Table(
+        title="PERFORMANCE",
+        box=box.SIMPLE_HEAVY,
+    )
+    analytics_table.add_column("Closed trades", justify="right", width=14)
+    analytics_table.add_column("Win rate", justify="right", width=10)
+    analytics_table.add_column("Total PnL", justify="right", width=12)
+    analytics_table.add_column("Max drawdown", justify="right", width=14)
+
+    if summary and summary.closed_count > 0:
+        pnl_color = "green" if summary.total_pnl >= 0 else "red"
+        sign = "+" if summary.total_pnl >= 0 else "-"
+        analytics_table.add_row(
+            str(summary.closed_count),
+            f"{summary.win_rate * 100:.0f}%",
+            f"[{pnl_color}]{sign}${abs(summary.total_pnl):.2f}[/{pnl_color}]",
+            f"${summary.max_drawdown:.2f}",
+        )
+    else:
+        analytics_table.add_row("—", "—", "—", "No closed trades yet")
+
     console.clear()
     console.print(edges_table)
     console.print(pos_table)
+    console.print(analytics_table)

@@ -1,5 +1,6 @@
 from dashboard import render
 from models import Edge, Position
+from analytics import AnalyticsSummary
 from datetime import datetime, timezone
 
 
@@ -28,3 +29,17 @@ def test_render_news_edge():
                      price_a=0.3, source_b="news", price_b=0.8, spread=0.5,
                      detected_at=datetime.now(timezone.utc))
     render([news_edge], [], next_poll_in=30)
+
+
+def test_render_with_no_data_does_not_crash():
+    summary = AnalyticsSummary(closed_count=0, win_rate=0.0, total_pnl=0.0, max_drawdown=0.0)
+    render(edges=[], positions=[], next_poll_in=60, summary=summary)
+
+
+def test_render_with_summary_data_does_not_crash():
+    summary = AnalyticsSummary(closed_count=10, win_rate=0.7, total_pnl=42.5, max_drawdown=-8.0)
+    render(edges=[], positions=[], next_poll_in=30, summary=summary)
+
+
+def test_render_without_summary_does_not_crash():
+    render(edges=[], positions=[], next_poll_in=60, summary=None)
