@@ -1,23 +1,22 @@
 # analyzer.py
 from __future__ import annotations
 from datetime import datetime, timezone
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import config
 from models import Market, Edge
 
-_POSITIVE = {"win", "lead", "surge", "rise", "approve", "pass", "beat",
-             "gain", "up", "high", "bullish", "confirm", "leads"}
-_NEGATIVE = {"lose", "fall", "drop", "fail", "reject", "crash", "down",
-             "low", "bearish", "deny", "suspend", "loss"}
+_vader = SentimentIntensityAnalyzer()
 
 
 def compute_arb_edges(pairs: list[tuple[Market, Market]]) -> list[Edge]:
-    """Compute arbitrage edges from matched (polymarket, other) pairs."""
+    """Compute arbitrage edges. High-volume markets get a 20% ranking bonus."""
     edges = []
     for pm, other in pairs:
         spread = abs(pm.yes_price - other.yes_price)
         if spread < config.MIN_EDGE_SIZE:
             continue
-        edges.append(Edge(
+        rank_spread = spread * (1.2 if pm.volume > 10_000 else 1.0)
+        edges.append((rank_spread, Edge(
             type="arb",
             question=pm.question,
             source_a=pm.source,
@@ -26,8 +25,8 @@ def compute_arb_edges(pairs: list[tuple[Market, Market]]) -> list[Edge]:
             price_b=other.yes_price,
             spread=spread,
             detected_at=datetime.now(timezone.utc),
-        ))
-    return sorted(edges, key=lambda e: e.spread, reverse=True)
+        )))
+    return [e for _, e in sorted(edges, key=lambda x: x[0], reverse=True)]
 
 
 def compute_news_edges(news_pairs: list[tuple[Market, str]]) -> list[Edge]:
@@ -49,11 +48,6 @@ def compute_news_edges(news_pairs: list[tuple[Market, str]]) -> list[Edge]:
 
 
 def _sentiment_score(text: str) -> float:
-    """Return 0.0–1.0 sentiment based on positive/negative keyword count."""
-    words = text.lower().split()
-    pos = sum(1 for w in words if w in _POSITIVE)
-    neg = sum(1 for w in words if w in _NEGATIVE)
-    total = pos + neg
-    if total == 0:
-        return 0.5
-    return pos / total
+    """Return 0.0–1.0 sentiment using VADER (0.5 = neutral)."""
+    compound = _vader.polarity_scores(text)["compound"]  # -1.0 to +1.0
+    return (compound + 1.0) / 2.0

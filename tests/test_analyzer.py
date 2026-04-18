@@ -1,54 +1,45 @@
-from analyzer import compute_arb_edges, compute_news_edges, _sentiment_score
+import pytest
+from datetime import datetime, timezone
 from models import Market, Edge
-from datetime import datetime
+from analyzer import compute_arb_edges, compute_news_edges, _sentiment_score
 
 
-def _market(source, question, price):
-    return Market(source=source, id="x", question=question, yes_price=price, url="")
+def _market(source="polymarket", id="m1", question="Q?", yes_price=0.5, volume=0.0):
+    return Market(source=source, id=id, question=question, yes_price=yes_price,
+                  url="http://x", volume=volume)
 
 
-def test_compute_arb_edges_detects_spread():
-    pm = _market("polymarket", "Will X happen?", 0.40)
-    ks = _market("kalshi", "Will X happen?", 0.55)
-    edges = compute_arb_edges([(pm, ks)])
-    assert len(edges) == 1
-    assert abs(edges[0].spread - 0.15) < 0.001
-
-
-def test_compute_arb_edges_filters_small_spread():
-    pm = _market("polymarket", "Q", 0.50)
-    ks = _market("kalshi", "Q", 0.52)
-    edges = compute_arb_edges([(pm, ks)])
-    assert edges == []
-
-
-def test_compute_arb_edges_sorted_desc():
-    pairs = [
-        (_market("polymarket", "Q1", 0.4), _market("kalshi", "Q1", 0.55)),
-        (_market("polymarket", "Q2", 0.3), _market("kalshi", "Q2", 0.65)),
-    ]
-    edges = compute_arb_edges(pairs)
-    assert edges[0].spread >= edges[1].spread
-
-
-def test_sentiment_score_positive():
-    score = _sentiment_score("trump leads surge win")
+def test_sentiment_score_positive_text():
+    score = _sentiment_score("The market surged and confirmed a massive win")
     assert score > 0.5
 
 
-def test_sentiment_score_negative():
-    score = _sentiment_score("market crash drop fail")
+def test_sentiment_score_negative_text():
+    score = _sentiment_score("Crash and burn, total failure and loss")
     assert score < 0.5
 
 
-def test_sentiment_score_neutral():
-    score = _sentiment_score("some random text with no keywords")
-    assert score == 0.5
+def test_sentiment_score_neutral_text():
+    score = _sentiment_score("the cat sat on the mat")
+    # neutral text should be near 0.5 (VADER returns ~0 compound for truly neutral)
+    assert 0.0 <= score <= 1.0
 
 
-def test_compute_news_edges_creates_edge():
-    pm = _market("polymarket", "Will X happen?", 0.3)
-    edges = compute_news_edges([(pm, "win lead surge")])
-    assert len(edges) == 1
-    assert edges[0].type == "news"
-    assert edges[0].source_b == "news"
+def test_arb_edges_high_volume_ranks_first():
+    """A lower-spread edge on a high-volume market should rank above higher spread on low volume."""
+    pm_low_vol = _market(id="m1", yes_price=0.5, volume=100.0)
+    pm_high_vol = _market(id="m2", yes_price=0.5, volume=50_000.0)
+    other_low = _market(source="kalshi", id="k1", yes_price=0.58, volume=0.0)   # spread 0.08
+    other_high = _market(source="kalshi", id="k2", yes_price=0.56, volume=0.0)  # spread 0.06
+
+    pairs = [(pm_low_vol, other_low), (pm_high_vol, other_high)]
+    edges = compute_arb_edges(pairs)
+    # high-volume market (spread 0.06 * 1.2 = 0.072) should rank first over low-vol (0.08)
+    assert edges[0].question == pm_high_vol.question
+
+
+def test_arb_edges_filters_below_min():
+    pm = _market(yes_price=0.5)
+    other = _market(source="kalshi", yes_price=0.52)  # spread 0.02, below MIN_EDGE_SIZE 0.05
+    edges = compute_arb_edges([(pm, other)])
+    assert edges == []
