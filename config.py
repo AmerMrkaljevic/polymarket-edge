@@ -22,3 +22,7 @@ REQUEST_TIMEOUT = 10
 
 REDDIT_SUBREDDITS = ["politics", "worldnews", "CryptoCurrency", "sports"]
 TELEGRAM_CHANNELS = ["polymarketwhales", "worldnewstoday"]
+
+PROFIT_TARGET = 0.10
+CLOSE_EDGE_THRESHOLD = 0.02
+POSITION_TIME_STOP_DAYS = 7
