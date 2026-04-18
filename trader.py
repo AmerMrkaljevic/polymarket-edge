@@ -17,11 +17,21 @@ def should_trade(edge: Edge, open_exposure: float) -> bool:
     return True
 
 
-def compute_size(bankroll: float, open_exposure: float) -> float:
-    """Compute order size in USDC, capped by per-position and total exposure limits."""
-    max_position = bankroll * config.MAX_POSITION_PCT
+def kelly_size(bankroll: float, spread: float, price: float, open_exposure: float) -> float:
+    """Compute order size using quarter-Kelly criterion, capped by position and exposure limits."""
+    if price <= 0 or price >= 1:
+        return 0.0
+    # Kelly formula: f = (b*p - q) / b
+    # where b = net odds (payout per unit risked), p = estimated win prob, q = 1-p
+    p = min(price + spread, 0.99)
+    q = 1.0 - p
+    b = (1.0 - price) / price  # net odds for a binary bet at this price
+    kelly_f = (b * p - q) / b
+    kelly_f = max(0.0, kelly_f) * config.KELLY_FRACTION
+    raw = bankroll * kelly_f
+    capped = min(raw, bankroll * config.MAX_POSITION_PCT)
     remaining = (bankroll * config.MAX_TOTAL_EXPOSURE_PCT) - open_exposure
-    return min(max_position, max(0.0, remaining))
+    return min(capped, max(0.0, remaining))
 
 
 def maybe_trade(
@@ -36,10 +46,20 @@ def maybe_trade(
     if not should_trade(edge, open_exposure):
         return None
 
-    size = compute_size(config.BANKROLL, open_exposure)
-    if size <= 0:
+    # Deduplication: skip if we already hold a position in this market
+    if any(p.market_id == market_id for p in positions):
         return None
 
     # Buy the underpriced side on Polymarket
-    side = "YES" if edge.price_a < edge.price_b else "NO"
-    return broker.place_order(market_id, edge.question, side, edge.price_a, size)
+    if edge.price_a < edge.price_b:
+        side = "YES"
+        price = edge.price_a
+    else:
+        side = "NO"
+        price = 1.0 - edge.price_a  # NO price is complement of YES price
+
+    size = kelly_size(config.BANKROLL, edge.spread, price, open_exposure)
+    if size <= 0:
+        return None
+
+    return broker.place_order(market_id, edge.question, side, price, size)
