@@ -28,6 +28,8 @@ def fetch_markets() -> list[Market]:
                 continue
             # prices are already in 0-1 range (dollars)
             yes_price = (yes_bid + yes_ask) / 2 if yes_bid > 0 else yes_ask
+            if yes_price < 0.02 or yes_price > 0.98:
+                continue
             markets.append(Market(
                 source="kalshi",
                 id=item["ticker"],

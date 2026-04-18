@@ -23,6 +23,9 @@ def fetch_markets() -> list[Market]:
             yes_price = _extract_yes_price(item.get("tokens", []))
             if yes_price is None:
                 continue
+            # skip near-resolved markets (price essentially 0 or 1)
+            if yes_price < 0.02 or yes_price > 0.98:
+                continue
             markets.append(Market(
                 source="polymarket",
                 id=item["condition_id"],
