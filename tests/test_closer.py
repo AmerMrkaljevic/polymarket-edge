@@ -5,8 +5,8 @@ from models import Position
 from closer import check_and_close
 
 
-def _pos(market_id="m1", entry_price=0.50, size=50.0, days_old=0, id=1):
-    opened = datetime.now(timezone.utc) - timedelta(days=days_old)
+def _pos(market_id="m1", entry_price=0.50, size=50.0, days_old=0, hours_old=0, id=1):
+    opened = datetime.now(timezone.utc) - timedelta(days=days_old, hours=hours_old)
     return Position(market_id=market_id, question="Q?", side="YES",
                     entry_price=entry_price, size=size, opened_at=opened, id=id)
 
@@ -23,7 +23,7 @@ def test_close_at_profit_target():
 
 def test_close_when_edge_gone():
     broker = MagicMock()
-    pos = _pos(entry_price=0.50)
+    pos = _pos(entry_price=0.50, hours_old=2)  # 2h old → past 1h minimum hold
     broker.get_open_positions.return_value = [pos]
     current_prices = {"m1": 0.505}  # +1% spread gone, < CLOSE_EDGE_THRESHOLD 2%
     with patch("closer.update_outcome") as mock_outcome:

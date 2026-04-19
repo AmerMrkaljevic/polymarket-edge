@@ -37,6 +37,9 @@ def run() -> None:
         news_pairs = match_news(pm_markets, all_headlines)
         edges = compute_arb_edges(arb_pairs) + compute_news_edges(news_pairs)
 
+        # Precompute question → market_id for O(1) edge lookup
+        question_to_id = {pm.question: pm.id for pm, _ in arb_pairs}
+
         # Update current prices for open positions
         open_positions = broker.get_open_positions()
         market_ids = [p.market_id for p in open_positions]
@@ -54,10 +57,7 @@ def run() -> None:
         # Trade edges
         for edge in edges:
             if edge.type == "arb":
-                market_id = next(
-                    (pm.id for pm, _ in arb_pairs if pm.question == edge.question),
-                    None,
-                )
+                market_id = question_to_id.get(edge.question)
                 if market_id:
                     maybe_trade(edge, broker, market_id)
 

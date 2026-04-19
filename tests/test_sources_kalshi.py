@@ -6,14 +6,14 @@ _MOCK_RESPONSE = {
         {
             "ticker": "FED-2024-CUT",
             "title": "Will the Fed cut rates in 2024?",
-            "yes_bid": 55,
-            "yes_ask": 57,
+            "yes_bid_dollars": 0.55,
+            "yes_ask_dollars": 0.57,
         },
         {
             "ticker": "NO-PRICES",
             "title": "Market with no prices",
-            "yes_bid": None,
-            "yes_ask": None,
+            "yes_bid_dollars": None,
+            "yes_ask_dollars": None,
         },
     ],
     "cursor": None,
@@ -27,7 +27,7 @@ def test_fetch_markets_returns_market():
         markets = fetch_markets()
     assert len(markets) == 1
     assert markets[0].source == "kalshi"
-    assert abs(markets[0].yes_price - 0.56) < 0.001  # (55+57)/2/100
+    assert abs(markets[0].yes_price - 0.56) < 0.001  # (0.55+0.57)/2
     assert markets[0].question == "Will the Fed cut rates in 2024?"
 
 

@@ -5,7 +5,8 @@ import requests
 import config
 from models import Market
 
-_NOW_MS = lambda: int(time.time() * 1000)
+def _now_ms() -> int:
+    return int(time.time() * 1000)
 
 
 def fetch_markets() -> list[Market]:
@@ -16,7 +17,7 @@ def fetch_markets() -> list[Market]:
         timeout=config.REQUEST_TIMEOUT,
     )
     resp.raise_for_status()
-    now_ms = _NOW_MS()
+    now_ms = _now_ms()
     markets = []
     for item in resp.json():
         if item.get("outcomeType") != "BINARY":
